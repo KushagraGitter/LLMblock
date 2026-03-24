@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #020617;
+  color: #f1f5f9;
+}
+
+/* React Flow overrides */
+.react-flow__controls button {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #94a3b8 !important;
+  fill: #94a3b8 !important;
+}
+
+.react-flow__controls button:hover {
+  background: #1e293b !important;
+}
+
+.react-flow__edge-path {
+  stroke: #334155;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #6366f1;
+}
+
+.react-flow__handle {
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.3);
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* Tooltip */
+[title] {
+  cursor: default;
+}
+
+/* Smooth transitions for panels */
+* {
+  transition-property: none;
+}
+
+.react-flow__node {
+  transition: none;
+}
