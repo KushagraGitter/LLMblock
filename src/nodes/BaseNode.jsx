@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import useTransformerStore from '../store/useTransformerStore.js';
 
@@ -7,7 +7,7 @@ import useTransformerStore from '../store/useTransformerStore.js';
  * Props:
  *   id, title, icon, accentColor,
  *   hasInput (bool), hasOutput (bool),
- *   children, badge (short status text)
+ *   children, badge, formula
  */
 export default function BaseNode({
   id,
@@ -17,10 +17,12 @@ export default function BaseNode({
   hasInput = true,
   hasOutput = true,
   badge,
+  formula,
   children,
 }) {
   const { selectedNodeId, setSelectedNodeId, hasRun } = useTransformerStore();
   const isSelected = selectedNodeId === id;
+  const [formulaOpen, setFormulaOpen] = useState(false);
 
   return (
     <div
@@ -80,6 +82,60 @@ export default function BaseNode({
 
       {/* Body */}
       <div style={{ padding: '10px 12px' }}>{children}</div>
+
+      {/* Formula section */}
+      {formula && (
+        <div
+          style={{
+            borderTop: `1px solid ${accentColor}22`,
+            padding: '0 12px',
+            paddingBottom: formulaOpen ? 8 : 0,
+          }}
+        >
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setFormulaOpen(v => !v);
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '5px 0',
+              color: accentColor + 'aa',
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              width: '100%',
+            }}
+          >
+            <span style={{ fontSize: 10 }}>{formulaOpen ? '▾' : '▸'}</span>
+            FORMULA
+          </button>
+
+          {formulaOpen && (
+            <div
+              style={{
+                background: accentColor + '0d',
+                borderRadius: 6,
+                padding: '8px 10px',
+                fontSize: 11,
+                color: '#cbd5e1',
+                fontFamily: 'ui-monospace, monospace',
+                lineHeight: 1.7,
+                letterSpacing: '0.02em',
+                whiteSpace: 'pre-wrap',
+              }}
+            >
+              {formula}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Handles */}
       {hasInput && (

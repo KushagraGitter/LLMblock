@@ -17,6 +17,7 @@ export default function EmbeddingNode({ id }) {
       icon="🧮"
       accentColor="#6366f1"
       badge={hasRun ? `${tokens.length} × ${MODEL_CONFIG.d_model}` : null}
+      formula={`E = W_embed[token_ids]\nshape: (seq_len × d_model)`}
     >
       {!hasRun ? (
         <div className="text-slate-500 text-xs italic">

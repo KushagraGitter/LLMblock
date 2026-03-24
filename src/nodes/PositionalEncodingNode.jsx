@@ -23,6 +23,7 @@ export default function PositionalEncodingNode({ id }) {
       icon="📍"
       accentColor="#a855f7"
       badge={hasRun ? 'sinusoidal' : null}
+      formula={`PE(pos, 2i)   = sin(pos / 10000^(2i/d))\nPE(pos, 2i+1) = cos(pos / 10000^(2i/d))\nOutput = Embed + PE`}
     >
       {!hasRun ? (
         <div className="text-slate-500 text-xs italic">

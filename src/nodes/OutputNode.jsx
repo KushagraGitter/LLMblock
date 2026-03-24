@@ -15,6 +15,7 @@ export default function OutputNode({ id }) {
       accentColor="#10b981"
       hasOutput={false}
       badge={hasRun ? 'next-token probs' : null}
+      formula={`logits = h_last · W_out + b\nP(y) = softmax(logits)\nshape: (vocab_size,)`}
     >
       {!hasRun ? (
         <div className="text-slate-500 text-xs italic">

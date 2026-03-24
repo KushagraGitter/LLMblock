@@ -104,3 +104,46 @@ export function filledVector(n, value = 0) {
 export function onesVector(n) {
   return new Array(n).fill(1);
 }
+
+/**
+ * Simple 2-component PCA via power iteration.
+ * Returns array of [x, y] projected coordinates.
+ */
+export function pca2D(matrix) {
+  if (!matrix || matrix.length < 2) return matrix.map(() => [0, 0]);
+  const n = matrix.length;
+  const d = matrix[0].length;
+
+  // Mean-center
+  const mean = new Array(d).fill(0);
+  for (const row of matrix) row.forEach((v, j) => (mean[j] += v));
+  mean.forEach((_, j) => (mean[j] /= n));
+  const X = matrix.map(row => row.map((v, j) => v - mean[j]));
+
+  // Power iteration on XᵀX to find top eigenvector
+  function topEigenvector(data, deflateVec) {
+    let v = new Array(d).fill(0);
+    v[0] = 1;
+    for (let iter = 0; iter < 80; iter++) {
+      // nv = (XᵀX)·v  computed as  Xᵀ(X·v)
+      const Xv = data.map(row => row.reduce((s, x, j) => s + x * v[j], 0));
+      let nv = new Array(d).fill(0);
+      data.forEach((row, i) => row.forEach((x, j) => (nv[j] += Xv[i] * x)));
+      if (deflateVec) {
+        const dot = deflateVec.reduce((s, x, j) => s + x * nv[j], 0);
+        nv = nv.map((x, j) => x - dot * deflateVec[j]);
+      }
+      const norm = Math.sqrt(nv.reduce((s, x) => s + x * x, 0)) || 1;
+      v = nv.map(x => x / norm);
+    }
+    return v;
+  }
+
+  const pc1 = topEigenvector(X, null);
+  const pc2 = topEigenvector(X, pc1);
+
+  return X.map(row => [
+    row.reduce((s, v, j) => s + v * pc1[j], 0),
+    row.reduce((s, v, j) => s + v * pc2[j], 0),
+  ]);
+}

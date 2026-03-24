@@ -18,6 +18,7 @@ export default function TokenizerNode({ id }) {
       accentColor="#3b82f6"
       hasInput={false}
       badge={hasRun ? `${tokens.length} tokens` : null}
+      formula={`id = vocab[token]\n<BOS> text <EOS>  →  [id₀, id₁, …, idₙ]`}
     >
       {!hasRun ? (
         <div className="text-slate-500 text-xs italic">Run to tokenize input…</div>

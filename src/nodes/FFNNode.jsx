@@ -26,6 +26,7 @@ export default function FFNNode({ id, data }) {
           ? `${MODEL_CONFIG.d_model}→${MODEL_CONFIG.d_ff}→${MODEL_CONFIG.d_model}`
           : null
       }
+      formula={`h = GELU(x·W₁ + b₁)\nFFN(x) = h·W₂ + b₂\nGELU(x) = x·Φ(x)`}
     >
       {!hasRun ? (
         <div className="text-slate-500 text-xs italic">

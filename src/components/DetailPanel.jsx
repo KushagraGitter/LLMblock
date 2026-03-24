@@ -1,216 +1,214 @@
 import React from 'react';
 import useTransformerStore from '../store/useTransformerStore.js';
 import HeatmapGrid from './HeatmapGrid.jsx';
+import LogitLens from './LogitLens.jsx';
+import EmbeddingSpace from './EmbeddingSpace.jsx';
 import { MODEL_CONFIG } from '../lib/weights.js';
 import { normalizeMatrix } from '../lib/mathUtils.js';
 
-/**
- * Slide-in right panel showing detailed information about the selected node.
- */
-export default function DetailPanel() {
+const TABS = [
+  { id: 'inspector',  icon: '🔎', label: 'Inspector' },
+  { id: 'logitLens',  icon: '🔍', label: 'Logit Lens' },
+  { id: 'embedSpace', icon: '🌐', label: 'Embed Space' },
+];
+
+function InspectorContent() {
   const {
-    selectedNodeId,
-    setSelectedNodeId,
-    pipelineResult,
-    tokens,
-    topTokens,
-    hasRun,
-    selectedLayerIdx,
-    setSelectedLayerIdx,
-    selectedHead,
-    setSelectedHead,
+    selectedNodeId, pipelineResult, tokens, topTokens,
+    modelConfig, selectedLayerIdx, setSelectedLayerIdx,
   } = useTransformerStore();
 
-  if (!selectedNodeId || !hasRun) return null;
-
-  const rowLabels = tokens.map(t => t.token);
+  const rowLabels   = tokens.map(t => t.token);
   const blockResult = pipelineResult?.blockResults?.[selectedLayerIdx];
 
-  const renderContent = () => {
-    if (selectedNodeId?.startsWith('tokenizer')) {
-      return (
-        <div className="flex flex-col gap-4">
-          <h3 className="text-blue-400 font-bold text-sm">Tokenizer Details</h3>
-          <p className="text-slate-400 text-xs leading-relaxed">
-            Raw text is split on whitespace and punctuation. Each word is mapped to
-            a unique integer ID from the vocabulary. Unknown words become{' '}
-            <code className="text-yellow-400">&lt;UNK&gt;</code>.
-          </p>
-          <div className="flex flex-col gap-1">
-            {tokens.map((t, i) => (
-              <div key={i} className="flex items-center gap-3 text-xs">
-                <span className="text-slate-500 w-4 text-right">{i}</span>
-                <span className="text-slate-200 font-mono w-24 truncate">{t.original || t.token}</span>
-                <span className="text-blue-400 font-mono">→ "{t.token}"</span>
-                <span className="text-slate-500 ml-auto">ID: {t.id}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
+  if (!selectedNodeId) {
+    return (
+      <div style={{ padding: 20, color: '#475569', fontSize: 12, textAlign: 'center' }}>
+        Click any node on the canvas to inspect its data.
+      </div>
+    );
+  }
 
-    if (selectedNodeId?.startsWith('embedding')) {
-      return (
-        <div className="flex flex-col gap-4">
-          <h3 className="text-indigo-400 font-bold text-sm">Embedding Matrix</h3>
-          <p className="text-slate-400 text-xs leading-relaxed">
-            Each token ID indexes into a learned embedding table to get a{' '}
-            {MODEL_CONFIG.d_model}-dimensional vector. These vectors encode semantic
-            meaning learned during training.
-          </p>
+  if (selectedNodeId?.startsWith('tokenizer')) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <h3 style={{ color: '#60a5fa', fontWeight: 700, fontSize: 13, margin: 0 }}>Tokenizer Details</h3>
+        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.6, margin: 0 }}>
+          Text is split on whitespace/punctuation. Each word is looked up in the vocabulary
+          and mapped to an integer ID. Unknown words become <code style={{ color: '#fbbf24' }}>&lt;UNK&gt;</code>.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {tokens.map((t, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11 }}>
+              <span style={{ color: '#475569', width: 16, textAlign: 'right', flexShrink: 0 }}>{i}</span>
+              <span style={{ color: '#cbd5e1', fontFamily: 'monospace', width: 80, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.original || t.token}</span>
+              <span style={{ color: '#3b82f6', fontFamily: 'monospace', flex: 1 }}>→ "{t.token}"</span>
+              <span style={{ color: '#475569', marginLeft: 'auto', flexShrink: 0 }}>ID: {t.id}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedNodeId?.startsWith('embedding')) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <h3 style={{ color: '#818cf8', fontWeight: 700, fontSize: 13, margin: 0 }}>Embedding Matrix</h3>
+        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.6, margin: 0 }}>
+          Each token ID indexes the embedding table W_embed to produce a {modelConfig.d_model}-dim vector.
+          Similar words learn similar vectors during training.
+        </p>
+        <HeatmapGrid
+          matrix={pipelineResult.embedNorm}
+          rowLabels={rowLabels}
+          cellSize={14}
+          maxCols={modelConfig.d_model}
+        />
+        <p style={{ color: '#475569', fontSize: 10, margin: 0 }}>
+          Rows = tokens · Cols = embedding dims (d_model={modelConfig.d_model})
+        </p>
+      </div>
+    );
+  }
+
+  if (selectedNodeId?.startsWith('positional')) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <h3 style={{ color: '#c084fc', fontWeight: 700, fontSize: 13, margin: 0 }}>Positional Encoding</h3>
+        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.6, margin: 0 }}>
+          PE(pos, 2i) = sin(pos / 10000^(2i/d_model))<br />
+          PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model))<br />
+          Each position gets a unique fingerprint. Added to the embeddings.
+        </p>
+        <div>
+          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>Positional Encoding</div>
+          <HeatmapGrid matrix={pipelineResult.peNorm} rowLabels={rowLabels} cellSize={14} />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>Embedding + PE (model input)</div>
+          <HeatmapGrid matrix={pipelineResult.embedWithPENorm} rowLabels={rowLabels} cellSize={14} />
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedNodeId?.startsWith('mha') || selectedNodeId?.startsWith('transformerBlock')) {
+    const hw = blockResult?.headWeights;
+    if (!hw) return <div style={{ color: '#475569', fontSize: 12 }}>No attention data.</div>;
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <h3 style={{ color: '#a78bfa', fontWeight: 700, fontSize: 13, margin: 0 }}>Attention Maps</h3>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 11, color: '#64748b' }}>Layer:</span>
+          {pipelineResult.blockResults.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setSelectedLayerIdx(i)}
+              style={{
+                padding: '2px 10px', borderRadius: 4, border: 'none', cursor: 'pointer',
+                fontSize: 11, fontWeight: 700,
+                background: selectedLayerIdx === i ? '#8b5cf6' : '#1e293b',
+                color: selectedLayerIdx === i ? '#fff' : '#94a3b8',
+              }}
+            >{i + 1}</button>
+          ))}
+        </div>
+
+        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.5, margin: 0 }}>
+          Each head computes attention independently. Bright = high weight.
+          Rows = query tokens, Cols = key tokens.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {hw.map((weights, h) => (
+            <div key={h}>
+              <div style={{ fontSize: 10, color: '#a78bfa', marginBottom: 4 }}>Head {h + 1}</div>
+              <HeatmapGrid
+                matrix={normalizeMatrix(weights)}
+                rowLabels={rowLabels}
+                colLabels={rowLabels}
+                cellSize={Math.max(8, Math.floor(120 / tokens.length))}
+                maxRows={tokens.length}
+                maxCols={tokens.length}
+                scheme="viridis"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedNodeId?.startsWith('ffn')) {
+    const ffnOut = blockResult?.intermediate?.ffnOut;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <h3 style={{ color: '#fbbf24', fontWeight: 700, fontSize: 13, margin: 0 }}>Feed-Forward Network</h3>
+        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.6, margin: 0 }}>
+          h = GELU(x·W₁ + b₁) → output = h·W₂ + b₂<br />
+          d_model={modelConfig.d_model} → d_ff={modelConfig.d_ff} → d_model={modelConfig.d_model}
+        </p>
+        {ffnOut && (
           <HeatmapGrid
-            matrix={pipelineResult.embedNorm}
+            matrix={normalizeMatrix(ffnOut)}
             rowLabels={rowLabels}
             cellSize={14}
-            maxCols={MODEL_CONFIG.d_model}
+            maxCols={modelConfig.d_model}
           />
-          <p className="text-slate-500 text-xs">
-            Rows = tokens · Cols = embedding dimensions (d_model={MODEL_CONFIG.d_model})
-          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (selectedNodeId?.startsWith('output')) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <h3 style={{ color: '#34d399', fontWeight: 700, fontSize: 13, margin: 0 }}>Output Probabilities</h3>
+        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.6, margin: 0 }}>
+          The final hidden state of the last token is projected through a linear layer
+          to vocab_size logits. Softmax converts to probabilities.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {topTokens.map((t, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: '#475569', fontSize: 10, width: 20, textAlign: 'right', flexShrink: 0 }}>#{i + 1}</span>
+              <span style={{ fontFamily: 'monospace', fontSize: 11, width: 72, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', flexShrink: 0, color: i === 0 ? '#10b981' : '#cbd5e1' }}>
+                {t.token}
+              </span>
+              <div style={{
+                height: 10, borderRadius: 3,
+                width: Math.round((t.prob / (topTokens[0]?.prob || 1)) * 120),
+                background: i === 0 ? '#10b981' : '#1e293b',
+                border: i === 0 ? 'none' : '1px solid #334155',
+              }} />
+              <span style={{ fontSize: 10, color: '#475569', marginLeft: 'auto', flexShrink: 0 }}>
+                {(t.prob * 100).toFixed(2)}%
+              </span>
+            </div>
+          ))}
         </div>
-      );
-    }
-
-    if (selectedNodeId?.startsWith('positional')) {
-      return (
-        <div className="flex flex-col gap-4">
-          <h3 className="text-purple-400 font-bold text-sm">Positional Encoding</h3>
-          <p className="text-slate-400 text-xs leading-relaxed">
-            Sinusoidal encoding: PE(pos, 2i) = sin(pos / 10000^(2i/d_model)),
-            PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model)). Added to embeddings.
-          </p>
-          <div>
-            <div className="text-xs text-slate-500 mb-2">Positional Encoding</div>
-            <HeatmapGrid matrix={pipelineResult.peNorm} rowLabels={rowLabels} cellSize={14} />
-          </div>
-          <div>
-            <div className="text-xs text-slate-500 mb-2">Embedding + PE (model input)</div>
-            <HeatmapGrid matrix={pipelineResult.embedWithPENorm} rowLabels={rowLabels} cellSize={14} />
-          </div>
+        <div style={{ fontSize: 10, color: '#334155' }}>
+          Logit range: [{Math.min(...pipelineResult.logits).toFixed(2)},{' '}
+          {Math.max(...pipelineResult.logits).toFixed(2)}]
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
-    if (selectedNodeId?.startsWith('mha') || selectedNodeId?.startsWith('transformerBlock')) {
-      const hw = blockResult?.headWeights;
-      if (!hw) return <div className="text-slate-500 text-xs">No attention data</div>;
+  return null;
+}
 
-      return (
-        <div className="flex flex-col gap-4">
-          <h3 className="text-violet-400 font-bold text-sm">Attention Maps</h3>
+export default function DetailPanel() {
+  const {
+    selectedNodeId, setSelectedNodeId,
+    hasRun, rightPanelTab, setRightPanelTab,
+  } = useTransformerStore();
 
-          {/* Layer selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400">Layer:</span>
-            {pipelineResult.blockResults.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setSelectedLayerIdx(i)}
-                style={{
-                  padding: '2px 10px',
-                  borderRadius: 4,
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 11,
-                  background: selectedLayerIdx === i ? '#8b5cf6' : '#1e293b',
-                  color: selectedLayerIdx === i ? '#fff' : '#94a3b8',
-                }}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-
-          <p className="text-slate-400 text-xs leading-relaxed">
-            Each head independently computes attention scores showing which tokens
-            "attend to" which. Bright cells = high attention weight.
-          </p>
-
-          {/* Head grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {hw.map((weights, h) => (
-              <div key={h} className="flex flex-col gap-1">
-                <div className="text-xs text-violet-300">Head {h + 1}</div>
-                <HeatmapGrid
-                  matrix={normalizeMatrix(weights)}
-                  rowLabels={rowLabels}
-                  colLabels={rowLabels}
-                  cellSize={Math.max(8, Math.floor(120 / tokens.length))}
-                  maxRows={tokens.length}
-                  maxCols={tokens.length}
-                  scheme="viridis"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    if (selectedNodeId?.startsWith('ffn')) {
-      const ffnOut = blockResult?.intermediate?.ffnOut;
-      return (
-        <div className="flex flex-col gap-4">
-          <h3 className="text-amber-400 font-bold text-sm">Feed-Forward Network</h3>
-          <p className="text-slate-400 text-xs leading-relaxed">
-            Two linear layers with GELU activation: x → W₁x + b₁ → GELU → W₂x + b₂.
-            d_model={MODEL_CONFIG.d_model} → d_ff={MODEL_CONFIG.d_ff} → d_model={MODEL_CONFIG.d_model}.
-          </p>
-          {ffnOut && (
-            <HeatmapGrid
-              matrix={normalizeMatrix(ffnOut)}
-              rowLabels={rowLabels}
-              cellSize={14}
-              maxCols={MODEL_CONFIG.d_model}
-            />
-          )}
-        </div>
-      );
-    }
-
-    if (selectedNodeId?.startsWith('output')) {
-      return (
-        <div className="flex flex-col gap-4">
-          <h3 className="text-emerald-400 font-bold text-sm">Output Probabilities</h3>
-          <p className="text-slate-400 text-xs leading-relaxed">
-            The final hidden state of the last token is projected through a linear layer
-            to vocab_size logits, then softmax converts to probabilities.
-          </p>
-          <div className="flex flex-col gap-1">
-            {topTokens.map((t, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className="text-slate-500 text-xs w-5 text-right">#{i + 1}</span>
-                <span
-                  className="font-mono text-xs w-24 truncate"
-                  style={{ color: i === 0 ? '#10b981' : '#cbd5e1' }}
-                >
-                  {t.token}
-                </span>
-                <div
-                  style={{
-                    height: 10,
-                    width: Math.round((t.prob / (topTokens[0]?.prob || 1)) * 120),
-                    background: i === 0 ? '#10b981' : '#1e293b',
-                    borderRadius: 3,
-                  }}
-                />
-                <span className="text-slate-500 text-xs ml-auto">
-                  {(t.prob * 100).toFixed(2)}%
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="text-slate-500 text-xs">
-            Logit range: [{Math.min(...pipelineResult.logits).toFixed(2)},{' '}
-            {Math.max(...pipelineResult.logits).toFixed(2)}]
-          </div>
-        </div>
-      );
-    }
-
-    return <div className="text-slate-500 text-xs">Select a node to inspect its data.</div>;
-  };
+  const isOpen = hasRun;
+  if (!isOpen) return null;
 
   return (
     <div
@@ -224,45 +222,57 @@ export default function DetailPanel() {
         flexShrink: 0,
       }}
     >
-      {/* Panel header */}
+      {/* Tab bar */}
       <div
         style={{
-          padding: '10px 14px',
-          borderBottom: '1px solid #1e293b',
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          borderBottom: '1px solid #1e293b',
+          background: '#020617',
+          flexShrink: 0,
         }}
       >
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: '0.12em',
-            color: '#475569',
-            textTransform: 'uppercase',
-          }}
-        >
-          Inspector
-        </span>
-        <button
-          onClick={() => setSelectedNodeId(null)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#64748b',
-            cursor: 'pointer',
-            fontSize: 16,
-            lineHeight: 1,
-          }}
-        >
-          ×
-        </button>
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setRightPanelTab(tab.id)}
+            style={{
+              flex: 1,
+              padding: '9px 4px',
+              border: 'none',
+              borderBottom: rightPanelTab === tab.id ? '2px solid #6366f1' : '2px solid transparent',
+              background: 'none',
+              cursor: 'pointer',
+              fontSize: 10,
+              fontWeight: rightPanelTab === tab.id ? 700 : 400,
+              color: rightPanelTab === tab.id ? '#818cf8' : '#475569',
+              transition: 'color 0.15s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+            }}
+          >
+            <span>{tab.icon}</span>
+            <span style={{ letterSpacing: '0.04em' }}>{tab.label}</span>
+          </button>
+        ))}
+        {selectedNodeId && (
+          <button
+            onClick={() => setSelectedNodeId(null)}
+            style={{
+              padding: '0 10px',
+              border: 'none', background: 'none',
+              color: '#475569', cursor: 'pointer', fontSize: 16,
+            }}
+          >×</button>
+        )}
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '14px 14px' }}>
-        {renderContent()}
+      <div style={{ flex: 1, overflow: 'auto', padding: rightPanelTab === 'embedSpace' ? 0 : '14px 14px' }}>
+        {rightPanelTab === 'inspector'  && <InspectorContent />}
+        {rightPanelTab === 'logitLens'  && <LogitLens />}
+        {rightPanelTab === 'embedSpace' && <EmbeddingSpace />}
       </div>
     </div>
   );

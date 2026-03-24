@@ -25,6 +25,7 @@ export default function TransformerBlockNode({ id, data }) {
       icon="🏗️"
       accentColor="#8b5cf6"
       badge={hasRun ? `Layer ${layerIdx + 1}` : null}
+      formula={`x₁ = x + MHA(LN(x))\nx₂ = x₁ + FFN(LN(x₁))\n(pre-norm residual)`}
     >
       {!hasRun ? (
         <div className="text-slate-500 text-xs italic">
