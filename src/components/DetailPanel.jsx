@@ -3,6 +3,10 @@ import useTransformerStore from '../store/useTransformerStore.js';
 import HeatmapGrid from './HeatmapGrid.jsx';
 import LogitLens from './LogitLens.jsx';
 import EmbeddingSpace from './EmbeddingSpace.jsx';
+import ExamplesPanel from './ExamplesPanel.jsx';
+import ExperimentsPanel from './ExperimentsPanel.jsx';
+import BPETokenizerDemo from './BPETokenizerDemo.jsx';
+import PythonExportPanel from './PythonExportPanel.jsx';
 import { MODEL_CONFIG } from '../lib/weights.js';
 import { normalizeMatrix } from '../lib/mathUtils.js';
 import { EXPLANATIONS } from '../data/blockExplanations.js';
@@ -68,9 +72,13 @@ function nodeTypeFromId(id) {
 }
 
 const TABS = [
-  { id: 'inspector',  icon: '🔎', label: 'Inspector' },
-  { id: 'logitLens',  icon: '🔍', label: 'Logit Lens' },
-  { id: 'embedSpace', icon: '🌐', label: 'Embed Space' },
+  { id: 'inspector',   icon: '🔎', label: 'Inspect'  },
+  { id: 'logitLens',   icon: '🔍', label: 'Lens'     },
+  { id: 'embedSpace',  icon: '🌐', label: 'Embed'    },
+  { id: 'examples',    icon: '📚', label: 'Examples' },
+  { id: 'experiments', icon: '🔬', label: 'Break'    },
+  { id: 'tokenizer',   icon: '✂️', label: 'Tokens'   },
+  { id: 'export',      icon: '🐍', label: 'Export'   },
 ];
 
 function InspectorContent() {
@@ -299,11 +307,12 @@ function InspectorContent() {
 export default function DetailPanel() {
   const {
     selectedNodeId, setSelectedNodeId,
-    hasRun, rightPanelTab, setRightPanelTab,
+    rightPanelTab, setRightPanelTab,
   } = useTransformerStore();
 
-  const isOpen = hasRun;
-  if (!isOpen) return null;
+  const noPad = rightPanelTab === 'embedSpace' || rightPanelTab === 'examples' ||
+                rightPanelTab === 'experiments' || rightPanelTab === 'tokenizer' ||
+                rightPanelTab === 'export';
 
   return (
     <div
@@ -324,6 +333,7 @@ export default function DetailPanel() {
           borderBottom: '1px solid #1e293b',
           background: '#020617',
           flexShrink: 0,
+          overflowX: 'auto',
         }}
       >
         {TABS.map(tab => (
@@ -331,23 +341,24 @@ export default function DetailPanel() {
             key={tab.id}
             onClick={() => setRightPanelTab(tab.id)}
             style={{
-              flex: 1,
-              padding: '9px 4px',
+              flex: '0 0 auto',
+              padding: '8px 8px',
               border: 'none',
               borderBottom: rightPanelTab === tab.id ? '2px solid #6366f1' : '2px solid transparent',
               background: 'none',
               cursor: 'pointer',
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: rightPanelTab === tab.id ? 700 : 400,
               color: rightPanelTab === tab.id ? '#818cf8' : '#475569',
               transition: 'color 0.15s',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: 4,
+              gap: 2,
+              minWidth: 44,
             }}
           >
-            <span>{tab.icon}</span>
+            <span style={{ fontSize: 14 }}>{tab.icon}</span>
             <span style={{ letterSpacing: '0.04em' }}>{tab.label}</span>
           </button>
         ))}
@@ -355,19 +366,25 @@ export default function DetailPanel() {
           <button
             onClick={() => setSelectedNodeId(null)}
             style={{
+              marginLeft: 'auto',
               padding: '0 10px',
               border: 'none', background: 'none',
               color: '#475569', cursor: 'pointer', fontSize: 16,
+              flexShrink: 0,
             }}
           >×</button>
         )}
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflow: 'auto', padding: rightPanelTab === 'embedSpace' ? 0 : '14px 14px' }}>
-        {rightPanelTab === 'inspector'  && <InspectorContent />}
-        {rightPanelTab === 'logitLens'  && <LogitLens />}
-        {rightPanelTab === 'embedSpace' && <EmbeddingSpace />}
+      <div style={{ flex: 1, overflow: 'auto', padding: noPad ? 0 : '14px 14px' }}>
+        {rightPanelTab === 'inspector'   && <InspectorContent />}
+        {rightPanelTab === 'logitLens'   && <LogitLens />}
+        {rightPanelTab === 'embedSpace'  && <EmbeddingSpace />}
+        {rightPanelTab === 'examples'    && <ExamplesPanel />}
+        {rightPanelTab === 'experiments' && <ExperimentsPanel />}
+        {rightPanelTab === 'tokenizer'   && <BPETokenizerDemo />}
+        {rightPanelTab === 'export'      && <PythonExportPanel />}
       </div>
     </div>
   );

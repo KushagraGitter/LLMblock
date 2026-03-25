@@ -77,14 +77,32 @@ export function ffn(x, ffnWeights) {
 
 // ── Single Transformer Block ─────────────────────────────────────────────────
 
-export function transformerBlock(x, weights, nHeads) {
-  const normed1 = layerNorm(x, weights.ln1_gamma, weights.ln1_beta);
-  const { output: attnOut, headWeights } = multiHeadAttention(normed1, weights.attn, nHeads);
-  const afterAttn = add(x, attnOut);
+/** ablation: { skipResidual, skipLayerNorm, maskedHeads: Set<number> } */
+export function transformerBlock(x, weights, nHeads, ablation = {}) {
+  const { skipResidual = false, skipLayerNorm = false, maskedHeads = new Set() } = ablation;
 
-  const normed2 = layerNorm(afterAttn, weights.ln2_gamma, weights.ln2_beta);
+  const normed1 = skipLayerNorm ? x : layerNorm(x, weights.ln1_gamma, weights.ln1_beta);
+  let { output: attnOut, headWeights } = multiHeadAttention(normed1, weights.attn, nHeads);
+
+  // Zero out masked heads
+  if (maskedHeads.size > 0) {
+    const dHead = Math.floor(x[0].length / nHeads);
+    attnOut = attnOut.map(row =>
+      row.map((v, col) => {
+        const head = Math.floor(col / dHead);
+        return maskedHeads.has(head) ? 0 : v;
+      })
+    );
+    headWeights = headWeights.map((hw, h) =>
+      maskedHeads.has(h) ? hw.map(r => r.map(() => 0)) : hw
+    );
+  }
+
+  const afterAttn = skipResidual ? attnOut : add(x, attnOut);
+
+  const normed2 = skipLayerNorm ? afterAttn : layerNorm(afterAttn, weights.ln2_gamma, weights.ln2_beta);
   const ffnOut = ffn(normed2, weights.ffn);
-  const output = add(afterAttn, ffnOut);
+  const output = skipResidual ? ffnOut : add(afterAttn, ffnOut);
 
   return {
     output,
@@ -95,24 +113,35 @@ export function transformerBlock(x, weights, nHeads) {
 
 // ── Full Pipeline ────────────────────────────────────────────────────────────
 
-export function runPipeline(tokenIds, embeddingMatrix, layerWeightsArr, finalLnGamma, finalLnBeta, outputProjection, outputBias, nHeads) {
+/**
+ * ablation: {
+ *   skipPositionalEncoding: bool,
+ *   skipResidual: bool,
+ *   skipLayerNorm: bool,
+ *   maskedHeads: Set<number>,   // head indices to zero-out across all layers
+ * }
+ */
+export function runPipeline(tokenIds, embeddingMatrix, layerWeightsArr, finalLnGamma, finalLnBeta, outputProjection, outputBias, nHeads, ablation = {}) {
+  const { skipPositionalEncoding = false } = ablation;
   const seqLen = tokenIds.length;
   const dModel = embeddingMatrix[0].length;
 
   const embeddings = tokenIds.map(id => [...embeddingMatrix[id]]);
   const pe = positionalEncoding(seqLen, dModel);
-  const embedWithPE = add(embeddings, pe);
+  const embedWithPE = skipPositionalEncoding ? embeddings : add(embeddings, pe);
 
   const blockResults = [];
   let hidden = embedWithPE;
 
   for (const weights of layerWeightsArr) {
-    const result = transformerBlock(hidden, weights, nHeads);
+    const result = transformerBlock(hidden, weights, nHeads, ablation);
     blockResults.push(result);
     hidden = result.output;
   }
 
-  const finalNormed = layerNorm(hidden, finalLnGamma, finalLnBeta);
+  const finalNormed = ablation.skipLayerNorm
+    ? hidden
+    : layerNorm(hidden, finalLnGamma, finalLnBeta);
 
   const lastHidden = finalNormed[finalNormed.length - 1];
   const logits = outputProjection[0].map((_, j) =>

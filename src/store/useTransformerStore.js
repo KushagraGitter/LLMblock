@@ -38,7 +38,7 @@ function sampleFromProbs(probs) {
   return probs.length - 1;
 }
 
-function runOnce(text, config) {
+function runOnce(text, config, ablation = {}) {
   const tokens   = tokenize(text);
   const ids      = tokens.map(t => t.id).slice(0, config.max_seq);
   const clipped  = tokens.slice(0, config.max_seq);
@@ -52,6 +52,7 @@ function runOnce(text, config) {
     _weights.outputProjection,
     _weights.outputBias,
     config.n_heads,
+    ablation,
   );
 
   const lens = computeLogitLens(result, _weights.outputProjection, _weights.outputBias)
@@ -82,6 +83,22 @@ const useTransformerStore = create((set, get) => ({
     });
   },
 
+  // ── Ablation (experiments) ─────────────────────────────────────────────────
+  ablation: {
+    skipPositionalEncoding: false,
+    skipResidual: false,
+    skipLayerNorm: false,
+    maskedHeads: new Set(),
+  },
+  setAblation: (patch) => {
+    set(state => {
+      const next = { ...state.ablation, ...patch };
+      return { ablation: next };
+    });
+    // Auto-rerun if already run
+    if (get().hasRun) setTimeout(() => get().run(), 0);
+  },
+
   // ── Input ──────────────────────────────────────────────────────────────────
   inputText: DEFAULT_TEXT,
   setInputText: (text) => set({ inputText: text }),
@@ -107,7 +124,7 @@ const useTransformerStore = create((set, get) => ({
   // ── UI ─────────────────────────────────────────────────────────────────────
   selectedNodeId: null,
   selectedLayerIdx: 0,
-  rightPanelTab: 'inspector',   // 'inspector' | 'logitLens' | 'embedSpace'
+  rightPanelTab: 'examples',   // 'inspector' | 'logitLens' | 'embedSpace' | 'examples' | 'experiments' | 'tokenizer' | 'export'
   showArchModal: false,
   showGenPanel: false,
   tourHighlightId: null,        // nodeIdPrefix currently highlighted by guided tour
@@ -126,12 +143,12 @@ const useTransformerStore = create((set, get) => ({
 
   // ── Run once ───────────────────────────────────────────────────────────────
   run: () => {
-    const { inputText, modelConfig } = get();
+    const { inputText, modelConfig, ablation } = get();
     if (!inputText.trim()) return;
     set({ isRunning: true });
 
     setTimeout(() => {
-      const { tokens, result, lens, top } = runOnce(inputText, modelConfig);
+      const { tokens, result, lens, top } = runOnce(inputText, modelConfig, ablation);
       set({
         tokens,
         pipelineResult: result,
