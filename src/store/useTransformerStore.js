@@ -6,6 +6,14 @@ import { VOCAB_SIZE } from '../lib/tokenizer.js';
 
 const DEFAULT_TEXT = 'the transformer model uses attention';
 
+// Safe localStorage helper (guards against SSR / private-browsing errors)
+function lsGet(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function lsSet(key, val) {
+  try { localStorage.setItem(key, val); } catch { /* ignore */ }
+}
+
 // Module-level mutable weights (recreated when arch changes)
 let _weights = defaultWeights;
 
@@ -103,7 +111,7 @@ const useTransformerStore = create((set, get) => ({
   showArchModal: false,
   showGenPanel: false,
   tourHighlightId: null,        // nodeIdPrefix currently highlighted by guided tour
-  showOnboarding: !localStorage.getItem('llmblock_onboarded'),
+  showOnboarding: !lsGet('llmblock_onboarded'),
 
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
   setSelectedLayerIdx: (i) => set({ selectedLayerIdx: i }),
@@ -112,7 +120,7 @@ const useTransformerStore = create((set, get) => ({
   setShowGenPanel: (v) => set({ showGenPanel: v }),
   setTourHighlightId: (id) => set({ tourHighlightId: id }),
   setShowOnboarding: (v) => {
-    if (!v) localStorage.setItem('llmblock_onboarded', '1');
+    if (!v) lsSet('llmblock_onboarded', '1');
     set({ showOnboarding: v });
   },
 
