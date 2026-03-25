@@ -3,6 +3,7 @@ import { tokenize, topK, idToToken, EOS_ID, PAD_ID } from '../lib/tokenizer.js';
 import { runPipeline, computeLogitLens } from '../lib/transformer.js';
 import { createWeights, MODEL_PRESETS, DEFAULT_CONFIG, defaultWeights, countParams } from '../lib/weights.js';
 import { VOCAB_SIZE } from '../lib/tokenizer.js';
+import { getWalkSteps } from '../data/walkSteps.js';
 
 const DEFAULT_TEXT = 'the transformer model uses attention';
 
@@ -130,8 +131,12 @@ const useTransformerStore = create((set, get) => ({
   rightPanelTab: 'examples',   // 'inspector'|'logitLens'|'embedSpace'|'examples'|'experiments'|'compare'|'vlm'|'tokenizer'|'export'
   showArchModal: false,
   showGenPanel: false,
-  tourHighlightId: null,        // nodeIdPrefix currently highlighted by guided tour
+  tourHighlightId: null,        // nodeIdPrefix currently highlighted by guided tour or walk
   showOnboarding: !lsGet('llmblock_onboarded'),
+
+  // ── Walk-through mode ──────────────────────────────────────────────────────
+  walkMode: false,
+  walkStep: -1,
 
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
   setSelectedLayerIdx: (i) => set({ selectedLayerIdx: i }),
@@ -139,6 +144,30 @@ const useTransformerStore = create((set, get) => ({
   setShowArchModal: (v) => set({ showArchModal: v }),
   setShowGenPanel: (v) => set({ showGenPanel: v }),
   setTourHighlightId: (id) => set({ tourHighlightId: id }),
+
+  startWalk: () => {
+    const { hasRun, run, modelConfig } = get();
+    const steps = getWalkSteps(modelConfig.n_layers);
+    if (!hasRun) setTimeout(() => run(), 0);
+    set({ walkMode: true, walkStep: 0, tourHighlightId: steps[0].nodeId });
+  },
+  nextWalkStep: () => {
+    const { walkStep, modelConfig } = get();
+    const steps = getWalkSteps(modelConfig.n_layers);
+    const next = walkStep + 1;
+    if (next >= steps.length) {
+      set({ walkMode: false, walkStep: -1, tourHighlightId: null });
+    } else {
+      set({ walkStep: next, tourHighlightId: steps[next].nodeId });
+    }
+  },
+  prevWalkStep: () => {
+    const { walkStep, modelConfig } = get();
+    const steps = getWalkSteps(modelConfig.n_layers);
+    const prev = Math.max(0, walkStep - 1);
+    set({ walkStep: prev, tourHighlightId: steps[prev].nodeId });
+  },
+  endWalk: () => set({ walkMode: false, walkStep: -1, tourHighlightId: null }),
   setShowOnboarding: (v) => {
     if (!v) lsSet('llmblock_onboarded', '1');
     set({ showOnboarding: v });

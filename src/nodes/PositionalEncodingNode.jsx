@@ -24,8 +24,27 @@ export default function PositionalEncodingNode({ id }) {
       formula={`PE(pos, 2i)   = sin(pos / 10000^(2i/d))\nPE(pos, 2i+1) = cos(pos / 10000^(2i/d))\nOutput = Embed + PE`}
     >
       {!hasRun ? (
-        <div className="text-slate-500 text-xs italic">
-          Injects position info via sin/cos frequencies
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* Mini sine wave SVG illustration */}
+          <svg viewBox="0 0 220 48" style={{ width: 220, height: 48 }}>
+            {[0, 1, 2].map(row => (
+              <g key={row}>
+                {Array.from({ length: 44 }, (_, x) => {
+                  const y = Math.sin((x / 44) * Math.PI * 2 * (row + 1)) * 10 + 12 + row * 16;
+                  return x > 0 ? (
+                    <line key={x}
+                      x1={(x - 1) * 5} y1={Math.sin(((x - 1) / 44) * Math.PI * 2 * (row + 1)) * 10 + 12 + row * 16}
+                      x2={x * 5} y2={y}
+                      stroke={['#818cf8', '#c084fc', '#60a5fa'][row]} strokeWidth={1.5} opacity={0.8}
+                    />
+                  ) : null;
+                })}
+              </g>
+            ))}
+          </svg>
+          <div style={{ fontSize: 9, color: '#334155' }}>
+            Each position gets a unique sine/cosine fingerprint
+          </div>
         </div>
       ) : (
         <div className="flex flex-col gap-2">

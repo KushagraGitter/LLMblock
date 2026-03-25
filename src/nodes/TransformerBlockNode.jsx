@@ -26,8 +26,28 @@ export default function TransformerBlockNode({ id, data }) {
       formula={`x₁ = x + MHA(LN(x))\nx₂ = x₁ + FFN(LN(x₁))\n(pre-norm residual)`}
     >
       {!hasRun ? (
-        <div className="text-slate-500 text-xs italic">
-          LN → MHA → Residual → LN → FFN → Residual
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {[
+            { label: 'LayerNorm', color: '#a78bfa', icon: '⊟' },
+            { label: 'Multi-Head Attention', color: '#818cf8', icon: '⊕' },
+            { label: '+ Residual', color: '#334155', icon: '↩' },
+            { label: 'LayerNorm', color: '#a78bfa', icon: '⊟' },
+            { label: 'Feed-Forward (FFN)', color: '#fb923c', icon: '⊛' },
+            { label: '+ Residual', color: '#334155', icon: '↩' },
+          ].map((s, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 11, color: s.color, width: 14, textAlign: 'center', flexShrink: 0 }}>{s.icon}</span>
+              <div style={{
+                height: 18, flex: 1, borderRadius: 3, fontSize: 9,
+                background: s.color + (s.label.startsWith('+') ? '0a' : '18'),
+                border: `1px solid ${s.color}${s.label.startsWith('+') ? '20' : '40'}`,
+                display: 'flex', alignItems: 'center', paddingLeft: 6,
+                color: s.label.startsWith('+') ? '#334155' : s.color,
+              }}>
+                {s.label}
+              </div>
+            </div>
+          ))}
         </div>
       ) : output ? (
         <div className="flex flex-col gap-2">

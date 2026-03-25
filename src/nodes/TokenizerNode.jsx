@@ -19,8 +19,21 @@ export default function TokenizerNode({ id }) {
       formula={`id = vocab[token]\n<BOS> text <EOS>  →  [id₀, id₁, …, idₙ]`}
     >
       {!hasRun ? (
-        <div style={{ color: '#475569', fontSize: 11, fontStyle: 'italic' }}>
-          Hit ▶ Run to see your text tokenized
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontSize: 10, color: '#475569' }}>Example split:</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, alignItems: 'center' }}>
+            <span style={{ fontSize: 10, color: '#334155', fontFamily: 'monospace' }}>"unbelievable"</span>
+            <span style={{ fontSize: 10, color: '#334155' }}>→</span>
+            {['un', 'believ', 'able'].map((t, i) => (
+              <span key={i} style={{
+                background: TOKEN_COLORS[i] + '25', border: `1px solid ${TOKEN_COLORS[i]}55`,
+                color: TOKEN_COLORS[i], borderRadius: 4, fontSize: 10, padding: '1px 5px', fontFamily: 'monospace',
+              }}>{t}</span>
+            ))}
+          </div>
+          <div style={{ fontSize: 9, color: '#334155' }}>
+            Hit ▶ Run to tokenize your own text
+          </div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

@@ -23,8 +23,32 @@ export default function MultiHeadAttentionNode({ id, data }) {
       formula={`Q=xWq, K=xWk, V=xWv\nhead_h = softmax(QKᵀ/√d_k)·V\nMHA = concat(heads)·Wo`}
     >
       {!hasRun ? (
-        <div className="text-slate-500 text-xs italic">
-          {MODEL_CONFIG.n_heads} heads × d_head={MODEL_CONFIG.d_head}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* Mini attention concept: 3×3 grid showing high/low values */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ fontSize: 9, color: '#475569', marginBottom: 2 }}>Attention (who looks at whom):</div>
+            {[
+              [0.8, 0.1, 0.1],
+              [0.2, 0.7, 0.1],
+              [0.05, 0.35, 0.6],
+            ].map((row, r) => (
+              <div key={r} style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                <span style={{ fontSize: 8, color: '#334155', width: 20, textAlign: 'right', fontFamily: 'monospace' }}>
+                  {['cat', 'sat', 'on'][r]}
+                </span>
+                {row.map((v, c) => (
+                  <div key={c} style={{
+                    width: 28, height: 14, borderRadius: 2,
+                    background: `rgba(139,92,246,${v})`,
+                    border: '1px solid #1e293b',
+                  }} />
+                ))}
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 9, color: '#334155' }}>
+            {MODEL_CONFIG.n_heads} heads run in parallel · bright = high attention
+          </div>
         </div>
       ) : headWeights ? (
         <div className="flex flex-col gap-2">

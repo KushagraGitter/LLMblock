@@ -16,8 +16,20 @@ export default function OutputNode({ id }) {
       formula={`logits = h_last · W_out + b\nP(y) = softmax(logits)\nshape: (vocab_size,)`}
     >
       {!hasRun ? (
-        <div className="text-slate-500 text-xs italic">
-          Projects hidden state → vocabulary probabilities
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <div style={{ fontSize: 9, color: '#475569' }}>Example next-word prediction:</div>
+          {[
+            { token: 'model', prob: 0.34, color: '#10b981' },
+            { token: 'network', prob: 0.21, color: '#34d399' },
+            { token: 'system', prob: 0.12, color: '#1e293b' },
+          ].map((t, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 52, fontSize: 10, color: t.color, fontFamily: 'monospace', flexShrink: 0 }}>{t.token}</span>
+              <div style={{ height: 10, width: Math.round(t.prob * 140), borderRadius: 2, background: t.color }} />
+              <span style={{ fontSize: 9, color: '#475569' }}>{(t.prob * 100).toFixed(0)}%</span>
+            </div>
+          ))}
+          <div style={{ fontSize: 9, color: '#334155' }}>Run to see real predictions for your input</div>
         </div>
       ) : (
         <div className="flex flex-col gap-1" style={{ minWidth: 220 }}>
