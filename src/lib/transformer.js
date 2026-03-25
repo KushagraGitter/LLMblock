@@ -23,20 +23,31 @@ export function positionalEncoding(seqLen, dModel) {
 
 // ── Attention ────────────────────────────────────────────────────────────────
 
+/**
+ * Apply attention mask to raw scores.
+ * 'causal' = lower-triangular (GPT-style). 'full' = no mask (BERT-style).
+ */
+function applyMask(scores, maskMode) {
+  if (maskMode !== 'causal') return scores;
+  return scores.map((row, i) =>
+    row.map((v, j) => (j > i ? -1e9 : v))
+  );
+}
+
 /** Scaled dot-product attention for a single head */
-function sdpAttention(Q, K, V) {
+function sdpAttention(Q, K, V, maskMode = 'full') {
   const d_k = Q[0].length;
-  const scores = scaleMatrix(matmul(Q, transpose(K)), 1 / Math.sqrt(d_k));
-  const weights = softmax(scores);
-  const output = matmul(weights, V);
-  return { output, weights };
+  const raw = scaleMatrix(matmul(Q, transpose(K)), 1 / Math.sqrt(d_k));
+  const weights = softmax(applyMask(raw, maskMode));
+  return { output: matmul(weights, V), weights };
 }
 
 /**
  * Multi-head attention.
+ * maskMode: 'full' (BERT/default) | 'causal' (GPT)
  * Returns { output, headWeights } where headWeights[h] is (seq × seq).
  */
-export function multiHeadAttention(x, attnWeights, nHeads) {
+export function multiHeadAttention(x, attnWeights, nHeads, maskMode = 'full') {
   const seqLen = x.length;
   const dModel = x[0].length;
   const dHead = Math.floor(dModel / nHeads);
@@ -55,6 +66,7 @@ export function multiHeadAttention(x, attnWeights, nHeads) {
       Q.map(r => r.slice(s, e)),
       K.map(r => r.slice(s, e)),
       V.map(r => r.slice(s, e)),
+      maskMode,
     );
     headOutputs.push(output);
     headWeights.push(weights);
@@ -162,6 +174,46 @@ export function runPipeline(tokenIds, embeddingMatrix, layerWeightsArr, finalLnG
     peNorm: normalizeMatrix(pe),
     embedWithPENorm: normalizeMatrix(embedWithPE),
   };
+}
+
+// ── Architecture Comparison ──────────────────────────────────────────────────
+
+/**
+ * Returns layer-0 per-head attention maps under a given mask mode.
+ * maskMode: 'causal' (GPT) | 'full' (BERT/T5-encoder)
+ */
+export function getAttentionMaps(tokenIds, embeddingMatrix, layerWeights, nHeads, maskMode = 'full') {
+  if (!layerWeights || layerWeights.length === 0 || tokenIds.length === 0) return [];
+  const seqLen = tokenIds.length;
+  const dModel = embeddingMatrix[0].length;
+  const embeddings = tokenIds.map(id => [...embeddingMatrix[Math.min(id, embeddingMatrix.length - 1)]]);
+  const pe = positionalEncoding(seqLen, dModel);
+  const x = add(embeddings, pe);
+  const normed = layerNorm(x, layerWeights[0].ln1_gamma, layerWeights[0].ln1_beta);
+  const { headWeights } = multiHeadAttention(normed, layerWeights[0].attn, nHeads, maskMode);
+  return headWeights;  // [nHeads][seqLen][seqLen]
+}
+
+// ── VLM / Vision Transformer ──────────────────────────────────────────────────
+
+/**
+ * Run the transformer on pre-computed patch embeddings (no token-ID lookup).
+ * Used by VLMPanel for Vision Transformer visualization.
+ * patchEmbeds: (seqLen × d_model)
+ */
+export function runPipelineFromEmbeddings(patchEmbeds, layerWeightsArr, finalLnGamma, finalLnBeta, nHeads) {
+  const seqLen = patchEmbeds.length;
+  const dModel = patchEmbeds[0].length;
+  const pe = positionalEncoding(seqLen, dModel);
+  const x = add(patchEmbeds, pe);
+  const blockResults = [];
+  let hidden = x;
+  for (const weights of layerWeightsArr) {
+    const result = transformerBlock(hidden, weights, nHeads);
+    blockResults.push(result);
+    hidden = result.output;
+  }
+  return { blockResults };
 }
 
 // ── Logit Lens ───────────────────────────────────────────────────────────────

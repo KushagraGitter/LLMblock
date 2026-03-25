@@ -17,6 +17,9 @@ function lsSet(key, val) {
 // Module-level mutable weights (recreated when arch changes)
 let _weights = defaultWeights;
 
+/** Returns the current model weights (reactive via pipelineResult changes). */
+export function getCurrentWeights() { return _weights; }
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function applyTemperature(probs, temperature) {
@@ -124,7 +127,7 @@ const useTransformerStore = create((set, get) => ({
   // ── UI ─────────────────────────────────────────────────────────────────────
   selectedNodeId: null,
   selectedLayerIdx: 0,
-  rightPanelTab: 'examples',   // 'inspector' | 'logitLens' | 'embedSpace' | 'examples' | 'experiments' | 'tokenizer' | 'export'
+  rightPanelTab: 'examples',   // 'inspector'|'logitLens'|'embedSpace'|'examples'|'experiments'|'compare'|'vlm'|'tokenizer'|'export'
   showArchModal: false,
   showGenPanel: false,
   tourHighlightId: null,        // nodeIdPrefix currently highlighted by guided tour

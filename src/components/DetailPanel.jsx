@@ -7,6 +7,8 @@ import ExamplesPanel from './ExamplesPanel.jsx';
 import ExperimentsPanel from './ExperimentsPanel.jsx';
 import BPETokenizerDemo from './BPETokenizerDemo.jsx';
 import PythonExportPanel from './PythonExportPanel.jsx';
+import ArchComparePanel from './ArchComparePanel.jsx';
+import VLMPanel from './VLMPanel.jsx';
 import { MODEL_CONFIG } from '../lib/weights.js';
 import { normalizeMatrix } from '../lib/mathUtils.js';
 import { EXPLANATIONS } from '../data/blockExplanations.js';
@@ -77,6 +79,8 @@ const TABS = [
   { id: 'embedSpace',  icon: '🌐', label: 'Embed'    },
   { id: 'examples',    icon: '📚', label: 'Examples' },
   { id: 'experiments', icon: '🔬', label: 'Break'    },
+  { id: 'compare',     icon: '🏛', label: 'Compare'  },
+  { id: 'vlm',         icon: '🖼', label: 'Vision'   },
   { id: 'tokenizer',   icon: '✂️', label: 'Tokens'   },
   { id: 'export',      icon: '🐍', label: 'Export'   },
 ];
@@ -310,9 +314,7 @@ export default function DetailPanel() {
     rightPanelTab, setRightPanelTab,
   } = useTransformerStore();
 
-  const noPad = rightPanelTab === 'embedSpace' || rightPanelTab === 'examples' ||
-                rightPanelTab === 'experiments' || rightPanelTab === 'tokenizer' ||
-                rightPanelTab === 'export';
+  const noPad = rightPanelTab === 'embedSpace';
 
   return (
     <div
@@ -383,6 +385,8 @@ export default function DetailPanel() {
         {rightPanelTab === 'embedSpace'  && <EmbeddingSpace />}
         {rightPanelTab === 'examples'    && <ExamplesPanel />}
         {rightPanelTab === 'experiments' && <ExperimentsPanel />}
+        {rightPanelTab === 'compare'     && <ArchComparePanel />}
+        {rightPanelTab === 'vlm'         && <VLMPanel />}
         {rightPanelTab === 'tokenizer'   && <BPETokenizerDemo />}
         {rightPanelTab === 'export'      && <PythonExportPanel />}
       </div>
