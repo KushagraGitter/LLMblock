@@ -13,9 +13,7 @@ export default function EmbeddingNode({ id }) {
   return (
     <BaseNode
       id={id}
-      title="Embedding Layer"
-      icon="🧮"
-      accentColor="#6366f1"
+      nodeType="embedding"
       badge={hasRun ? `${tokens.length} × ${MODEL_CONFIG.d_model}` : null}
       formula={`E = W_embed[token_ids]\nshape: (seq_len × d_model)`}
     >

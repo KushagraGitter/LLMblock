@@ -21,9 +21,7 @@ export default function TransformerBlockNode({ id, data }) {
   return (
     <BaseNode
       id={id}
-      title={`Transformer Block ${layerIdx + 1}`}
-      icon="🏗️"
-      accentColor="#8b5cf6"
+      nodeType="transformerBlock"
       badge={hasRun ? `Layer ${layerIdx + 1}` : null}
       formula={`x₁ = x + MHA(LN(x))\nx₂ = x₁ + FFN(LN(x₁))\n(pre-norm residual)`}
     >

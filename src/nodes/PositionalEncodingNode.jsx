@@ -19,9 +19,7 @@ export default function PositionalEncodingNode({ id }) {
   return (
     <BaseNode
       id={id}
-      title="Positional Encoding"
-      icon="📍"
-      accentColor="#a855f7"
+      nodeType="positionalEncoding"
       badge={hasRun ? 'sinusoidal' : null}
       formula={`PE(pos, 2i)   = sin(pos / 10000^(2i/d))\nPE(pos, 2i+1) = cos(pos / 10000^(2i/d))\nOutput = Embed + PE`}
     >

@@ -5,6 +5,67 @@ import LogitLens from './LogitLens.jsx';
 import EmbeddingSpace from './EmbeddingSpace.jsx';
 import { MODEL_CONFIG } from '../lib/weights.js';
 import { normalizeMatrix } from '../lib/mathUtils.js';
+import { EXPLANATIONS } from '../data/blockExplanations.js';
+
+/** Beginner-friendly explanation card shown at the top of Inspector */
+function ExplainCard({ nodeType }) {
+  const exp = EXPLANATIONS[nodeType];
+  if (!exp) return null;
+  return (
+    <div
+      style={{
+        background: exp.color + '0e',
+        border: `1px solid ${exp.color}30`,
+        borderRadius: 10,
+        padding: '12px 14px',
+        marginBottom: 14,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
+        <span style={{ fontSize: 22 }}>{exp.icon}</span>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: exp.color }}>{exp.displayTitle}</div>
+          <div style={{ fontSize: 10, color: '#94a3b8' }}>{exp.tagline}</div>
+        </div>
+      </div>
+      <p style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.65, margin: '0 0 10px', whiteSpace: 'pre-line' }}>
+        {exp.analogy}
+      </p>
+      <div style={{ background: '#0f172a', borderRadius: 7, padding: '7px 9px', fontSize: 10, marginBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
+          <span style={{ color: '#475569', width: 32, flexShrink: 0 }}>IN</span>
+          <span style={{ color: '#94a3b8' }}>{exp.inputLabel}
+            {exp.inputEx && <span style={{ color: '#475569', marginLeft: 5 }}>{exp.inputEx}</span>}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <span style={{ color: '#475569', width: 32, flexShrink: 0 }}>OUT</span>
+          <span style={{ color: '#94a3b8' }}>{exp.outputLabel}
+            {exp.outputEx && <span style={{ color: '#475569', marginLeft: 5 }}>{exp.outputEx}</span>}
+          </span>
+        </div>
+      </div>
+      {exp.keyFact && (
+        <div style={{ fontSize: 10, color: '#64748b', background: '#1e293b', borderRadius: 6, padding: '6px 9px', lineHeight: 1.5 }}>
+          {exp.keyFact}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Resolve nodeType from nodeId prefix */
+function nodeTypeFromId(id) {
+  if (!id) return null;
+  if (id.startsWith('tokenizer'))       return 'tokenizer';
+  if (id.startsWith('embedding'))       return 'embedding';
+  if (id.startsWith('positional'))      return 'positionalEncoding';
+  if (id.startsWith('mha'))             return 'multiHeadAttention';
+  if (id.startsWith('ffn'))             return 'ffn';
+  if (id.startsWith('transformerBlock')) return 'transformerBlock';
+  if (id.startsWith('output'))          return 'output';
+  return null;
+}
 
 const TABS = [
   { id: 'inspector',  icon: '🔎', label: 'Inspector' },
@@ -20,32 +81,53 @@ function InspectorContent() {
 
   const rowLabels   = tokens.map(t => t.token);
   const blockResult = pipelineResult?.blockResults?.[selectedLayerIdx];
+  const nodeType    = nodeTypeFromId(selectedNodeId);
 
   if (!selectedNodeId) {
     return (
-      <div style={{ padding: 20, color: '#475569', fontSize: 12, textAlign: 'center' }}>
-        Click any node on the canvas to inspect its data.
+      <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#475569', textAlign: 'center' }}>
+          👆 Click any block on the canvas
+        </div>
+        <div style={{ fontSize: 11, color: '#334155', textAlign: 'center', lineHeight: 1.6 }}>
+          Each block does one specific job. Click it to see a plain-language explanation and the actual data flowing through it.
+        </div>
+        <div style={{ borderTop: '1px solid #1e293b', paddingTop: 14 }}>
+          <div style={{ fontSize: 10, color: '#334155', marginBottom: 8 }}>ALL BLOCKS EXPLAINED:</div>
+          {Object.entries(EXPLANATIONS).map(([key, exp]) => (
+            <div key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 16, flexShrink: 0 }}>{exp.icon}</span>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: exp.color }}>{exp.displayTitle}</div>
+                <div style={{ fontSize: 10, color: '#475569', lineHeight: 1.4 }}>{exp.tagline}</div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
+  // Always show explain card at top when a node is selected
+  const ExplainSection = () => <ExplainCard nodeType={nodeType} />;
+
+
   if (selectedNodeId?.startsWith('tokenizer')) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <h3 style={{ color: '#60a5fa', fontWeight: 700, fontSize: 13, margin: 0 }}>Tokenizer Details</h3>
-        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.6, margin: 0 }}>
-          Text is split on whitespace/punctuation. Each word is looked up in the vocabulary
-          and mapped to an integer ID. Unknown words become <code style={{ color: '#fbbf24' }}>&lt;UNK&gt;</code>.
-        </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <ExplainSection />
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Token Lookup Table</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {tokens.map((t, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11 }}>
-              <span style={{ color: '#475569', width: 16, textAlign: 'right', flexShrink: 0 }}>{i}</span>
-              <span style={{ color: '#cbd5e1', fontFamily: 'monospace', width: 80, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t.original || t.token}</span>
-              <span style={{ color: '#3b82f6', fontFamily: 'monospace', flex: 1 }}>→ "{t.token}"</span>
-              <span style={{ color: '#475569', marginLeft: 'auto', flexShrink: 0 }}>ID: {t.id}</span>
+              <span style={{ color: '#334155', width: 18, textAlign: 'right', flexShrink: 0 }}>{i}</span>
+              <span style={{ color: '#cbd5e1', fontFamily: 'monospace', flex: 1 }}>"{t.token}"</span>
+              <span style={{ color: '#3b82f6', fontFamily: 'monospace', flexShrink: 0 }}>ID {t.id}</span>
             </div>
           ))}
+        </div>
+        <div style={{ fontSize: 10, color: '#334155', marginTop: 2 }}>
+          Unknown words become ID 3 (UNK token)
         </div>
       </div>
     );
@@ -54,10 +136,12 @@ function InspectorContent() {
   if (selectedNodeId?.startsWith('embedding')) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <h3 style={{ color: '#818cf8', fontWeight: 700, fontSize: 13, margin: 0 }}>Embedding Matrix</h3>
+        <ExplainSection />
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Embedding Heatmap</div>
         <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.6, margin: 0 }}>
-          Each token ID indexes the embedding table W_embed to produce a {modelConfig.d_model}-dim vector.
-          Similar words learn similar vectors during training.
+          Each <b style={{ color: '#818cf8' }}>row</b> is one token's meaning vector.
+          Each <b style={{ color: '#818cf8' }}>column</b> is one dimension of meaning.
+          Bright = high value, dark = low value.
         </p>
         <HeatmapGrid
           matrix={pipelineResult.embedNorm}
@@ -74,12 +158,11 @@ function InspectorContent() {
 
   if (selectedNodeId?.startsWith('positional')) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <h3 style={{ color: '#c084fc', fontWeight: 700, fontSize: 13, margin: 0 }}>Positional Encoding</h3>
-        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.6, margin: 0 }}>
-          PE(pos, 2i) = sin(pos / 10000^(2i/d_model))<br />
-          PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model))<br />
-          Each position gets a unique fingerprint. Added to the embeddings.
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <ExplainSection />
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Visualisation</div>
+        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.5, margin: 0 }}>
+          Notice the wave-like pattern — each <b style={{ color: '#c084fc' }}>row</b> (position) has a unique fingerprint made of alternating sine and cosine waves.
         </p>
         <div>
           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>Positional Encoding</div>
@@ -94,12 +177,22 @@ function InspectorContent() {
   }
 
   if (selectedNodeId?.startsWith('mha') || selectedNodeId?.startsWith('transformerBlock')) {
-    const hw = blockResult?.headWeights;
-    if (!hw) return <div style={{ color: '#475569', fontSize: 12 }}>No attention data.</div>;
+    const nt  = selectedNodeId?.startsWith('mha') ? 'multiHeadAttention' : 'transformerBlock';
+    const hw  = blockResult?.headWeights;
+    if (!hw) return (
+      <div style={{ padding: 14 }}>
+        <ExplainCard nodeType={nt} />
+        <div style={{ color: '#475569', fontSize: 12 }}>Run the pipeline to see attention maps.</div>
+      </div>
+    );
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <h3 style={{ color: '#a78bfa', fontWeight: 700, fontSize: 13, margin: 0 }}>Attention Maps</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <ExplainCard nodeType={nt} />
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Attention Maps</div>
+        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.5, margin: 0 }}>
+          Each square shows what a <b style={{ color: '#a78bfa' }}>query word</b> (row) is paying attention to (<b style={{ color: '#a78bfa' }}>key words</b>, columns). <b style={{ color: '#fbbf24' }}>Bright = strong attention</b>.
+        </p>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 11, color: '#64748b' }}>Layer:</span>
@@ -146,10 +239,11 @@ function InspectorContent() {
     const ffnOut = blockResult?.intermediate?.ffnOut;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <h3 style={{ color: '#fbbf24', fontWeight: 700, fontSize: 13, margin: 0 }}>Feed-Forward Network</h3>
-        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.6, margin: 0 }}>
-          h = GELU(x·W₁ + b₁) → output = h·W₂ + b₂<br />
-          d_model={modelConfig.d_model} → d_ff={modelConfig.d_ff} → d_model={modelConfig.d_model}
+        <ExplainSection />
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>FFN Output</div>
+        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.5, margin: 0 }}>
+          Each <b style={{ color: '#f59e0b' }}>row</b> = one token's representation after the FFN.
+          Dimensionality: {modelConfig.d_model} → {modelConfig.d_ff} → {modelConfig.d_model}
         </p>
         {ffnOut && (
           <HeatmapGrid
@@ -166,10 +260,11 @@ function InspectorContent() {
   if (selectedNodeId?.startsWith('output')) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <h3 style={{ color: '#34d399', fontWeight: 700, fontSize: 13, margin: 0 }}>Output Probabilities</h3>
-        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.6, margin: 0 }}>
-          The final hidden state of the last token is projected through a linear layer
-          to vocab_size logits. Softmax converts to probabilities.
+        <ExplainSection />
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Next-Token Predictions</div>
+        <p style={{ color: '#64748b', fontSize: 11, lineHeight: 1.5, margin: 0 }}>
+          The <b style={{ color: '#34d399' }}>longest bar</b> = the model's best guess for the next word.
+          Try <b style={{ color: '#a78bfa' }}>🎲 Generate</b> to see it pick words one by one.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {topTokens.map((t, i) => (

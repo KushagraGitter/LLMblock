@@ -18,6 +18,7 @@ import Sidebar                      from './components/Sidebar.jsx';
 import DetailPanel                  from './components/DetailPanel.jsx';
 import GenerationPanel              from './components/GenerationPanel.jsx';
 import ArchModal                    from './components/ArchModal.jsx';
+import OnboardingOverlay            from './components/OnboardingOverlay.jsx';
 import useTransformerStore          from './store/useTransformerStore.js';
 
 let nodeIdCounter = 100;
@@ -290,12 +291,15 @@ export default function App() {
                 <div
                   style={{
                     background: '#0f172a', border: '1px solid #1e293b',
-                    borderRadius: 8, padding: '10px 16px', fontSize: 12,
-                    color: '#475569', textAlign: 'center',
+                    borderRadius: 10, padding: '12px 20px', fontSize: 12,
+                    color: '#64748b', textAlign: 'center', lineHeight: 1.6,
                   }}
                 >
-                  Type text above → <strong style={{ color: '#3b82f6' }}>▶ Run</strong> to see data flow
-                  · <strong style={{ color: '#a78bfa' }}>🎲 Generate</strong> to watch autoregressive generation
+                  <div style={{ fontWeight: 700, color: '#94a3b8', marginBottom: 3 }}>
+                    👋 New? Click <strong style={{ color: '#818cf8' }}>🎓 Guided Tour</strong> in the sidebar
+                  </div>
+                  Or type something above and hit <strong style={{ color: '#3b82f6' }}>▶ Run</strong> to watch data flow through the model.
+                  Then click any block to see what it does.
                 </div>
               </Panel>
             )}
@@ -311,6 +315,9 @@ export default function App() {
 
       {/* Architecture modal */}
       <ArchModal />
+
+      {/* Onboarding overlay (welcome + guided tour) */}
+      <OnboardingOverlay />
     </div>
   );
 }

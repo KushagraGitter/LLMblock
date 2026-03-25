@@ -10,9 +10,7 @@ export default function OutputNode({ id }) {
   return (
     <BaseNode
       id={id}
-      title="Linear + Softmax"
-      icon="🎯"
-      accentColor="#10b981"
+      nodeType="output"
       hasOutput={false}
       badge={hasRun ? 'next-token probs' : null}
       formula={`logits = h_last · W_out + b\nP(y) = softmax(logits)\nshape: (vocab_size,)`}

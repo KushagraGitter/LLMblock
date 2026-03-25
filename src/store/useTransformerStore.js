@@ -102,12 +102,19 @@ const useTransformerStore = create((set, get) => ({
   rightPanelTab: 'inspector',   // 'inspector' | 'logitLens' | 'embedSpace'
   showArchModal: false,
   showGenPanel: false,
+  tourHighlightId: null,        // nodeIdPrefix currently highlighted by guided tour
+  showOnboarding: !localStorage.getItem('llmblock_onboarded'),
 
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
   setSelectedLayerIdx: (i) => set({ selectedLayerIdx: i }),
   setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
   setShowArchModal: (v) => set({ showArchModal: v }),
   setShowGenPanel: (v) => set({ showGenPanel: v }),
+  setTourHighlightId: (id) => set({ tourHighlightId: id }),
+  setShowOnboarding: (v) => {
+    if (!v) localStorage.setItem('llmblock_onboarded', '1');
+    set({ showOnboarding: v });
+  },
 
   // ── Run once ───────────────────────────────────────────────────────────────
   run: () => {

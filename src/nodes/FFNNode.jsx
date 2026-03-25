@@ -18,9 +18,7 @@ export default function FFNNode({ id, data }) {
   return (
     <BaseNode
       id={id}
-      title="Feed-Forward Network"
-      icon="⚡"
-      accentColor="#f59e0b"
+      nodeType="ffn"
       badge={
         hasRun
           ? `${MODEL_CONFIG.d_model}→${MODEL_CONFIG.d_ff}→${MODEL_CONFIG.d_model}`

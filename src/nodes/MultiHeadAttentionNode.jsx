@@ -18,9 +18,7 @@ export default function MultiHeadAttentionNode({ id, data }) {
   return (
     <BaseNode
       id={id}
-      title={`Multi-Head Attention`}
-      icon="🧠"
-      accentColor="#8b5cf6"
+      nodeType="multiHeadAttention"
       badge={hasRun ? `Layer ${layerIdx + 1} · ${MODEL_CONFIG.n_heads} heads` : null}
       formula={`Q=xWq, K=xWk, V=xWv\nhead_h = softmax(QKᵀ/√d_k)·V\nMHA = concat(heads)·Wo`}
     >

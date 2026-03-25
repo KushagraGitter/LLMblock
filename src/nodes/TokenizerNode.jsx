@@ -13,50 +13,52 @@ export default function TokenizerNode({ id }) {
   return (
     <BaseNode
       id={id}
-      title="Tokenizer"
-      icon="🔤"
-      accentColor="#3b82f6"
+      nodeType="tokenizer"
       hasInput={false}
       badge={hasRun ? `${tokens.length} tokens` : null}
       formula={`id = vocab[token]\n<BOS> text <EOS>  →  [id₀, id₁, …, idₙ]`}
     >
       {!hasRun ? (
-        <div className="text-slate-500 text-xs italic">Run to tokenize input…</div>
+        <div style={{ color: '#475569', fontSize: 11, fontStyle: 'italic' }}>
+          Hit ▶ Run to see your text tokenized
+        </div>
       ) : (
-        <div className="flex flex-col gap-2">
-          {/* Input text preview */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div
-            className="text-slate-300 text-xs p-2 rounded"
-            style={{ background: '#1e293b', maxWidth: 240, wordBreak: 'break-all' }}
+            style={{
+              background: '#1e293b', borderRadius: 6, padding: '5px 8px',
+              fontSize: 11, color: '#94a3b8', wordBreak: 'break-all', maxWidth: 260,
+            }}
           >
             "{inputText.slice(0, 60)}{inputText.length > 60 ? '…' : ''}"
           </div>
 
-          {/* Token chips */}
-          <div className="flex flex-wrap gap-1">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
             {tokens.slice(0, 16).map((t, i) => (
               <div
                 key={i}
-                title={`ID: ${t.id}`}
+                title={`Token ID: ${t.id}`}
                 style={{
-                  background: TOKEN_COLORS[i % TOKEN_COLORS.length] + '33',
-                  border: `1px solid ${TOKEN_COLORS[i % TOKEN_COLORS.length]}88`,
+                  background: TOKEN_COLORS[i % TOKEN_COLORS.length] + '25',
+                  border: `1px solid ${TOKEN_COLORS[i % TOKEN_COLORS.length]}66`,
                   color: TOKEN_COLORS[i % TOKEN_COLORS.length],
-                  borderRadius: 4,
-                  fontSize: 10,
-                  padding: '1px 5px',
-                  fontFamily: 'monospace',
+                  borderRadius: 4, fontSize: 10,
+                  padding: '2px 6px', fontFamily: 'monospace',
                 }}
               >
                 {t.token}
-                <span style={{ opacity: 0.6, marginLeft: 3 }}>#{t.id}</span>
+                <span style={{ opacity: 0.55, marginLeft: 3, fontSize: 9 }}>#{t.id}</span>
               </div>
             ))}
             {tokens.length > 16 && (
-              <div className="text-slate-500 text-xs self-center">
+              <span style={{ color: '#475569', fontSize: 10, alignSelf: 'center' }}>
                 +{tokens.length - 16} more
-              </div>
+              </span>
             )}
+          </div>
+
+          <div style={{ fontSize: 9, color: '#334155' }}>
+            Each chip = one token · Hover to see its ID
           </div>
         </div>
       )}
